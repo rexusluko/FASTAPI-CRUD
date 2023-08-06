@@ -15,7 +15,7 @@ class DishUpdate(DishBase):
     pass
 
 
-class Dish(DishBase):
+class DishResponse(DishBase):
     id: str
 
     class Config:
@@ -35,7 +35,7 @@ class SubMenuUpdate(SubMenuBase):
     pass
 
 
-class SubMenu(SubMenuBase):
+class SubMenuResponse(SubMenuBase):
     id: str
     dishes_count: int
 
@@ -56,7 +56,7 @@ class MenuUpdate(MenuBase):
     pass
 
 
-class Menu(MenuBase):
+class MenuResponse(MenuBase):
     id: str
     submenus_count: int
     dishes_count: int

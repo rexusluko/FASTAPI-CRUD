@@ -1,108 +1,134 @@
-from .menu_test import test_create_menu
-from .submenu_test import test_create_submenu
+import pytest
+from httpx import AsyncClient
+
+from ..main import app
+from .conftest import URL
 
 
-def test_get_dishes(client, menu_id: str = None, submenu_id: str = None, amount: int = 0):
-    if not menu_id:
-        menu_id = test_create_menu(client)["id"]
-    if not submenu_id:
-        submenu_id = test_create_submenu(client, menu_id=menu_id)["id"]
-    response = client.get(f"/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes")
+@pytest.mark.asyncio
+async def test_create_dish():
+    async with AsyncClient(app=app, base_url=URL) as client:
+        create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
+        create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
+        menu_id = create_menu_response.json()['id']
+        create_submenu_data = {'title': 'My submenu 11', 'description': 'My menu description 11'}
+        create_submenu_response = await client.post(f'{URL}/api/v1/menus/{menu_id}/submenus', json=create_submenu_data)
+        submenu_id = create_submenu_response.json()['id']
+        data = {'title': 'My dish 111', 'description': 'My dish description 111', 'price': '100'}
+        response = await client.post(f'{URL}/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes', json=data)
 
-    assert response.status_code == 200
-    assert len(response.json()) == amount
-
-
-def test_create_dish(client, menu_id: str = None, submenu_id: str = None, title: str = "My dish 1",
-                     description: str = "My dish description 1", price: str = "0.0"):
-    if not menu_id:
-        menu_id = test_create_menu(client)["id"]
-    if not submenu_id:
-        submenu_id = test_create_submenu(client,menu_id=menu_id)["id"]
-    request = {"title": f"{title}", "description": f"{description}", "price": f"{price}"}
-    response = client.post(f"/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes", json=request)
-
-    assert response.status_code == 201
-    assert "id" in response.json()
-    assert response.json()["title"] == request["title"]
-    assert response.json()["description"] == request["description"]
-    assert response.json()["price"] == request["price"]
-    return response.json()
+        assert response.status_code == 201
+        assert 'id' in response.json()
+        assert response.json()['title'] == data['title']
+        assert response.json()['description'] == data['description']
+        assert response.json()['price'] == data['price']
+        return response.json()
 
 
-def test_get_dish(client, menu_id: str = None, submenu_id: str = None, dish_id: str = None):
-    if not menu_id:
-        menu_id = test_create_menu(client)["id"]
-    if not submenu_id:
-        submenu_id = test_create_submenu(client,menu_id=menu_id)["id"]
-    if not dish_id:
-        dish_id = test_create_dish(client,menu_id=menu_id,submenu_id=submenu_id)["id"]
-
-    response = client.get(f"/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes/{dish_id}")
-
-    assert response.status_code == 200
-    assert "id" in response.json()
-    assert "title" in response.json()
-    assert "description" in response.json()
-    assert "price" in response.json()
+@pytest.mark.asyncio
+async def test_get_dishes():
+    async with AsyncClient(app=app, base_url=URL) as client:
+        create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
+        create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
+        menu_id = create_menu_response.json()['id']
+        create_submenu_data = {'title': 'My submenu 11', 'description': 'My menu description 11'}
+        create_submenu_response = await client.post(f'{URL}/api/v1/menus/{menu_id}/submenus', json=create_submenu_data)
+        submenu_id = create_submenu_response.json()['id']
+        response = await client.get(f'{URL}/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes')
+        assert response.status_code == 200
 
 
-def test_get_non_existing_dish(client, menu_id: str = None, submenu_id: str = None, dish_id: str = None):
-    if not menu_id:
-        menu_id = test_create_menu(client)["id"]
-    if not submenu_id:
-        submenu_id = test_create_submenu(client,menu_id=menu_id)["id"]
-    response = client.get(f"/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes/{dish_id}")
+@pytest.mark.asyncio
+async def test_get_dish():
+    async with AsyncClient(app=app, base_url=URL) as client:
+        create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
+        create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
+        menu_id = create_menu_response.json()['id']
+        create_submenu_data = {'title': 'My submenu 11', 'description': 'My menu description 11'}
+        create_submenu_response = await client.post(f'{URL}/api/v1/menus/{menu_id}/submenus', json=create_submenu_data)
+        submenu_id = create_submenu_response.json()['id']
+        create_dish_data = {'title': 'My dish 111', 'description': 'My dish description 111', 'price': '100'}
+        create_dish_response = await client.post(f'{URL}/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes', json=create_dish_data)
+        dish_id = create_dish_response.json()['id']
 
-    assert response.status_code == 404
-    assert response.json()['detail'] == "dish not found"
-
-
-def test_update_dish(client, menu_id: str = None, submenu_id: str = None, dish_id: str = None,
-                     new_title: str = "Changed menu 4",
-                     new_description: str = "Changed description 4", new_price: str = "4.4"):
-    if not menu_id:
-        menu_id = test_create_menu(client)["id"]
-    if not submenu_id:
-        submenu_id = test_create_submenu(client,menu_id=menu_id)["id"]
-    if not dish_id:
-        dish_id = test_create_dish(client,menu_id=menu_id,submenu_id=submenu_id)["id"]
-
-    request = {"title": f"{new_title}", "description": f"{new_description}", "price": f"{new_price}"}
-    response = client.patch(f"/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes/{dish_id}", json=request)
-
-    assert response.status_code == 200
-    assert response.json()["id"] == dish_id
-    assert response.json()["title"] == new_title
-    assert response.json()["description"] == new_description
-    assert response.json()["price"] == new_price
+        response = await client.get(f'{URL}/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes/{dish_id}')
+        assert response.status_code == 200
+        assert 'id' in response.json()
+        assert 'title' in response.json()
+        assert 'description' in response.json()
+        assert 'price' in response.json()
 
 
-def test_update_non_existing_dish(client, menu_id: str = None, submenu_id: str = None, dish_id: str = None,
-                                  new_title: str = "Changed menu 5",
-                                  new_description: str = "Changed description 5",
-                                  new_price: str = "5.5"):
-    if not menu_id:
-        menu_id = test_create_menu(client)["id"]
-    if not submenu_id:
-        submenu_id = test_create_submenu(client,menu_id=menu_id)["id"]
-    response = client.patch(f"/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes/{dish_id}",
-                            json={"title": f"{new_title}",
-                                  "description": f"{new_description}",
-                                  "price": f"{new_price}"})
-    assert response.status_code == 404
-    assert response.json()['detail'] == "dish not found"
+@pytest.mark.asyncio
+async def test_get_non_existing_dish():
+    async with AsyncClient(app=app, base_url=URL) as client:
+        create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
+        create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
+        menu_id = create_menu_response.json()['id']
+        create_submenu_data = {'title': 'My submenu 11', 'description': 'My menu description 11'}
+        create_submenu_response = await client.post(f'{URL}/api/v1/menus/{menu_id}/submenus', json=create_submenu_data)
+        submenu_id = create_submenu_response.json()['id']
+
+        response = await client.get(f'{URL}/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes/None')
+
+        assert response.status_code == 404
+        assert response.json()['detail'] == 'dish not found'
 
 
-def test_delete_dish(client, menu_id: str = None, submenu_id: str = None, dish_id: str = None):
-    if not menu_id:
-        menu_id = test_create_menu(client)["id"]
-    if not submenu_id:
-        submenu_id = test_create_submenu(client,menu_id=menu_id)["id"]
-    if not dish_id:
-        dish_id = test_create_dish(client,menu_id=menu_id,submenu_id=submenu_id)["id"]
-    response = client.delete(f"/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes/{dish_id}")
+@pytest.mark.asyncio
+async def test_update_dish():
+    async with AsyncClient(app=app, base_url=URL) as client:
+        create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
+        create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
+        menu_id = create_menu_response.json()['id']
+        create_submenu_data = {'title': 'My submenu 11', 'description': 'My menu description 11'}
+        create_submenu_response = await client.post(f'{URL}/api/v1/menus/{menu_id}/submenus', json=create_submenu_data)
+        submenu_id = create_submenu_response.json()['id']
+        create_dish_data = {'title': 'My dish 111', 'description': 'My dish description 111', 'price': '100'}
+        create_dish_response = await client.post(f'{URL}/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes', json=create_dish_data)
+        dish_id = create_dish_response.json()['id']
 
-    assert response.status_code == 200
-    assert response.json()["status"] == True
-    assert response.json()["message"] == "The dish has been deleted"
+        data = {'title': 'My dish 22111', 'description': 'My dish description 1112', 'price': '1300'}
+
+        response = await client.patch(f'{URL}/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes/{dish_id}', json=data)
+
+        assert response.json()['id'] == dish_id
+        assert response.json()['title'] == data['title']
+        assert response.json()['description'] == data['description']
+        assert response.json()['price'] == data['price']
+
+
+@pytest.mark.asyncio
+async def test_update_non_existing_dish():
+    async with AsyncClient(app=app, base_url=URL) as client:
+        create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
+        create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
+        menu_id = create_menu_response.json()['id']
+        create_submenu_data = {'title': 'My submenu 11', 'description': 'My menu description 11'}
+        create_submenu_response = await client.post(f'{URL}/api/v1/menus/{menu_id}/submenus', json=create_submenu_data)
+        submenu_id = create_submenu_response.json()['id']
+
+        data = {'title': 'My dish 22111', 'description': 'My dish description 1112', 'price': '1300'}
+
+        response = await client.patch(f'{URL}/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes/None', json=data)
+        assert response.status_code == 404
+        assert response.json()['detail'] == 'dish not found'
+
+
+@pytest.mark.asyncio
+async def test_delete_submenu():
+    async with AsyncClient(app=app, base_url=URL) as client:
+        create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
+        create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
+        menu_id = create_menu_response.json()['id']
+        create_submenu_data = {'title': 'My submenu 11', 'description': 'My menu description 11'}
+        create_submenu_response = await client.post(f'{URL}/api/v1/menus/{menu_id}/submenus', json=create_submenu_data)
+        submenu_id = create_submenu_response.json()['id']
+        create_dish_data = {'title': 'My dish 111', 'description': 'My dish description 111', 'price': '100'}
+        create_dish_response = await client.post(f'{URL}/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes', json=create_dish_data)
+        dish_id = create_dish_response.json()['id']
+
+        response = await client.delete(f'{URL}/api/v1/menus/{menu_id}/submenus/{submenu_id}/dishes/{dish_id}')
+        assert response.status_code == 200
+        assert response.json()['status'] is True
+        assert response.json()['message'] == 'The dish has been deleted'

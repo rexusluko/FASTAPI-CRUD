@@ -6,6 +6,7 @@ WORKDIR /app
 ENV PYTHONPATH=/app
 ENV DATABASE_URL="postgresql://postgres:12345@db/restaurant"
 
+
 # Install dependencies
 COPY requirements.txt /app/
 

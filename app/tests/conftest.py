@@ -1,40 +1,13 @@
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine,MetaData
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+import asyncio
 
-from ..database import Base
-from ..main import app, get_db
+import pytest_asyncio
 
-TEST_DATABASE_URL = "postgresql://postgres:12345@db/restaurant"
-
-test_engine = create_engine(TEST_DATABASE_URL, )
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
-Base.metadata.create_all(bind=test_engine)
-
-# Очистка всех таблиц после каждого теста
-@pytest.fixture(scope="session",autouse=True)
-def clear_tables():
-    metadata = MetaData()
-    metadata.reflect(bind=test_engine)
-
-    with TestingSessionLocal() as db:
-        for table in reversed(metadata.sorted_tables):
-            db.query(table).delete()
-        db.commit()
-
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
+URL = 'http://web:8000'
 
 
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture(scope="session")
-def client():
-    return TestClient(app)
+@pytest_asyncio.fixture(scope='session')
+def event_loop(request):
+    """Create an instance of the default event loop for each test case."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
