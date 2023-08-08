@@ -10,10 +10,10 @@ from ..schemas import SubMenuCreate, SubMenuResponse, SubMenuUpdate
 
 
 class SubMenuRepository:
-    def __init__(self, db: AsyncSession = Depends(get_async_session)):
+    def __init__(self, db: AsyncSession = Depends(get_async_session)) -> None:
         self.db = db
 
-    async def create(self, menu_id, submenu_data: SubMenuCreate) -> SubMenuResponse:
+    async def create(self, menu_id: str, submenu_data: SubMenuCreate) -> SubMenuResponse:
         Item: SubMenu = SubMenu(id=str(uuid.uuid4()), menu_id=menu_id, **submenu_data.model_dump())
         self.db.add(Item)
         await self.db.commit()
@@ -49,7 +49,7 @@ class SubMenuRepository:
         await self.db.refresh(Item)
         return SubMenuResponse(**Item.__dict__)
 
-    async def delete(self, menu_id: str, submenu_id: str):
+    async def delete(self, menu_id: str, submenu_id: str) -> dict:
 
         stmt = select(SubMenu).filter(SubMenu.id == submenu_id, SubMenu.menu_id == menu_id)
         result = await self.db.execute(stmt)

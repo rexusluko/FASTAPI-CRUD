@@ -11,7 +11,7 @@ from ..schemas import MenuCreate, MenuResponse, MenuUpdate
 
 
 class MenuRepository:
-    def __init__(self, db: AsyncSession = Depends(get_async_session)):
+    def __init__(self, db: AsyncSession = Depends(get_async_session)) -> None:
         self.db = db
 
     async def create(self, menu_data: MenuCreate) -> MenuResponse:
@@ -50,10 +50,10 @@ class MenuRepository:
         await self.db.refresh(Item)
         return MenuResponse(**Item.__dict__)
 
-    async def delete(self, menu_id: str):
-        stmt = select(Menu).filter(Menu.id == menu_id)
-        result = await self.db.execute(stmt)
-        Item: Menu = result.scalar()
+    async def delete(self, menu_id: str) -> dict:
+        menu_stmt = select(Menu).filter(Menu.id == menu_id)
+        menu_result = await self.db.execute(menu_stmt)
+        Item: Menu = menu_result.scalar()
 
         if not Item:
             return {'status': False, 'message': 'menu not found'}

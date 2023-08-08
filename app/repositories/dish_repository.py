@@ -10,10 +10,10 @@ from ..schemas import DishCreate, DishResponse, DishUpdate
 
 
 class DishRepository:
-    def __init__(self, db: AsyncSession = Depends(get_async_session)):
+    def __init__(self, db: AsyncSession = Depends(get_async_session)) -> None:
         self.db = db
 
-    async def create(self, submenu_id, dish_data: DishCreate) -> DishResponse:
+    async def create(self, submenu_id: str, dish_data: DishCreate) -> DishResponse:
         Item: Dish = Dish(id=str(uuid.uuid4()), submenu_id=submenu_id, **dish_data.model_dump())
         self.db.add(Item)
         await self.db.commit()
@@ -49,7 +49,7 @@ class DishRepository:
         await self.db.refresh(Item)
         return DishResponse(**Item.__dict__)
 
-    async def delete(self, submenu_id: str, dish_id: str):
+    async def delete(self, submenu_id: str, dish_id: str) -> dict:
         stmt = select(Dish).filter(Dish.id == dish_id, Dish.submenu_id == submenu_id)
         result = await self.db.execute(stmt)
         Item: Dish = result.scalar()
