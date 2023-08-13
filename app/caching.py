@@ -1,30 +1,33 @@
 import pickle
 from typing import Any
 
-import redis  # type: ignore
+import redis.asyncio as redis  # type: ignore
+from fastapi import Depends
 
 
-def get_redis_client():
+def get_async_redis_pool():
     return redis.Redis(host='redis', port=6379, db=0)
 
 
-class RedisCache:
-    def __init__(self, redis_client: redis.Redis) -> None:
-        self.redis_client = redis_client
-        self.ttl = 600
+async def get_async_redis_client(redis_pool: redis.Redis = Depends(get_async_redis_pool)):
+    return redis_pool
 
-    def get(self, key: str) -> Any:
-        data = self.redis_client.get(key)
-        if data is not None:
-            if data == b'changed':
-                return None
+
+class AsyncRedisCache:
+    def __init__(self, redis_pool: redis.Redis = Depends(get_async_redis_pool)) -> None:
+        self.redis_pool = redis_pool
+        self.ttl = 1800
+
+    async def get(self, key: str) -> Any:
+        data = await self.redis_pool.get(key)
+        if data and data != b'changed':
             return pickle.loads(data)
         return None
 
-    def set(self, key: str, value: Any) -> bool:
+    async def set(self, key: str, value: Any) -> bool:
         if type(value) is str:
-            return self.redis_client.setex(key, self.ttl, value)
-        return self.redis_client.setex(key, self.ttl, pickle.dumps(value))
+            return await self.redis_pool.setex(key, self.ttl, value)
+        return await self.redis_pool.setex(key, self.ttl, pickle.dumps(value))
 
-    def delete(self, key: str) -> int:
-        return self.redis_client.delete(key)
+    async def delete(self, key: str) -> int:
+        return await self.redis_pool.delete(key)

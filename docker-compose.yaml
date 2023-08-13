@@ -31,6 +31,43 @@ services:
     depends_on:
       db:
         condition: service_healthy
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile-celery
+    container_name: ylab_celery_beat
+    environment:
+      - BROKER_URL=pyamqp://guest:guest@rabbitmq:5672//
+    depends_on:
+      - rabbitmq
+      - db
+      - web
+      - redis
+    command: [ "celery", "-A", "admin_task:celery_app", "beat", "--loglevel=info" ]
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile-celery
+    container_name: ylab_celery_worker
+    volumes:
+      - your_path/admin:/app/admin
+    environment:
+      - BROKER_URL=pyamqp://guest:guest@rabbitmq:5672//
+    depends_on:
+      - rabbitmq
+      - db
+      - web
+      - redis
+    command: [ "celery", "-A", "admin_task:celery_app", "worker", "--loglevel=info", "--concurrency", "1", "-P", "solo"]
+
+  rabbitmq:
+    container_name: ylab_rabbitmq
+    image: "rabbitmq:management"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+
   redis:
     container_name: ylab_redis
     image: redis:latest

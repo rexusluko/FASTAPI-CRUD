@@ -4,9 +4,10 @@ from fastapi import Depends, HTTPException
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 from ..database import get_async_session
-from ..models import Menu
+from ..models import Menu, SubMenu
 from ..schemas import MenuCreate, MenuResponse, MenuUpdate
 
 
@@ -61,3 +62,36 @@ class MenuRepository:
         await self.db.execute(delete(Menu).where(Menu.id == menu_id))
         await self.db.commit()
         return {'status': True, 'message': 'The menu has been deleted'}
+
+    async def get_all_entities(self) -> list[dict]:
+        result = await self.db.execute(
+            select(Menu).options(
+                selectinload(Menu.submenus).selectinload(SubMenu.dishes)
+            )
+        )
+        menus = result.scalars().all()
+
+        menus_data = []
+        for menu in menus:
+            menu_data = {
+                'id': menu.id,
+                'title': menu.title,
+                'description': menu.description,
+                'submenus': [
+                    {
+                        'id': submenu.id,
+                        'title': submenu.title,
+                        'description': submenu.description,
+                        'dishes': [
+                            {
+                                'id': dish.id,
+                                'title': dish.title,
+                                'description': dish.description,
+                                'price': str(dish.price)
+                            } for dish in submenu.dishes
+                        ]
+                    } for submenu in menu.submenus
+                ]
+            }
+            menus_data.append(menu_data)
+        return menus_data

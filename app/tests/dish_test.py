@@ -22,7 +22,6 @@ async def test_create_dish():
         assert response.json()['title'] == data['title']
         assert response.json()['description'] == data['description']
         assert response.json()['price'] == data['price']
-        return response.json()
 
 
 @pytest.mark.asyncio
