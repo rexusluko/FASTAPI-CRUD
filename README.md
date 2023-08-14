@@ -5,3 +5,4 @@
 5. Для проверки работы админки можно поменять содержимое admin/Menu.xlsx
 6. Остановить контейнер приложения
 7. Для запуска тестов выполнить docker-compose -f docker-compose-test.yaml up
+8. Для проверки Postman тестов выполнить docker-compose -f docker-compose-postman.yaml up
