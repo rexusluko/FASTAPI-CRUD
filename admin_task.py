@@ -5,9 +5,13 @@ import httpx
 import openpyxl
 from celery import Celery
 
-base_url = 'http://web:8000/api/v1'
-delete_row = 0
+menu_ids: set[str] = set()
+submenu_ids: set[str] = set()
+submenus: dict[str, str] = {}
+dish_ids: set[str] = set()
+dishes: dict[str, tuple[str, str]] = {}
 
+base_url = 'http://web:8000/api/v1'
 
 loop = asyncio.get_event_loop()
 semaphore = asyncio.Semaphore(1)
@@ -75,8 +79,13 @@ async def delete_dish(menu_id: str, submenu_id: str, dish_id: str) -> None:
         await client.delete(f'{base_url}/menus/{menu_id}/submenus/{submenu_id}/dishes/{dish_id}')
 
 
-async def create_and_update_from_excel(filepath: str) -> None:
-    global delete_row
+async def change_from_excel(filepath: str) -> None:
+    global menu_ids, submenu_ids, submenus, dish_ids, dishes
+    cur_menu_ids = set()
+    cur_submenu_ids = set()
+    cur_submenus = {}
+    cur_dish_ids = set()
+    cur_dishes = {}
     menu_id_column, menu_title_column, menu_description_column = 1, 2, 3
     submenu_id_column, submenu_title_column, submenu_description_column = 2, 3, 4
     dish_id_column, dish_title_column, dish_description_column, dish_price_column = 3, 4, 5, 6
@@ -96,6 +105,7 @@ async def create_and_update_from_excel(filepath: str) -> None:
             async with semaphore:
                 menu_id = await create_menu(menu_data)
             sheet.cell(row=row, column=menu_id_column).value = menu_id
+        cur_menu_ids.add(menu_id)
         row += 1
         while sheet.cell(row=row, column=submenu_description_column).value and (
                 sheet.cell(row=row, column=dish_description_column).value is None):  # цикл по подменю
@@ -110,6 +120,8 @@ async def create_and_update_from_excel(filepath: str) -> None:
                 async with semaphore:
                     submenu_id = await create_submenu(menu_id, submenu_data)
                 sheet.cell(row=row, column=submenu_id_column).value = submenu_id
+            cur_submenu_ids.add(submenu_id)
+            cur_submenus[submenu_id] = menu_id
             row += 1
             while sheet.cell(row=row, column=dish_description_column).value:  # цикл по блюдам
                 dish_title = sheet.cell(row=row, column=dish_title_column).value
@@ -124,45 +136,28 @@ async def create_and_update_from_excel(filepath: str) -> None:
                     async with semaphore:
                         dish_id = await create_dish(menu_id, submenu_id, dish_data)
                     sheet.cell(row=row, column=dish_id_column).value = dish_id
+                cur_dish_ids.add(dish_id)
+                cur_dishes[dish_id] = (menu_id, submenu_id)
                 row += 1
-    wb.save(filepath)
-    wb.close()
-    delete_row = row + 3
 
+    dish_ids_not_in_excel = dish_ids - cur_dish_ids
+    for dish_id in dish_ids_not_in_excel:
+        menu_id, submenu_id = dishes[dish_id]
+        await delete_dish(menu_id, submenu_id, dish_id)
 
-async def delete_from_excel(filepath: str, start_row: int) -> None:
-    menu_menu_id = 1
-    submenu_menu_id, submenu_submenu_id = 3, 4
-    dish_menu_id, dish_submenu_id, dish_dish_id = 6, 7, 8
-    wb = openpyxl.load_workbook(filepath)
-    sheet = wb.active
-    row = start_row
-    while sheet.cell(row=row, column=menu_menu_id).value:  # цикл для удаления меню
-        menu_id = sheet.cell(row=row, column=menu_menu_id).value
-        async with semaphore:
-            await delete_menu(menu_id)
-        sheet.cell(row=row, column=menu_menu_id).value = None
-        row += 1
-    row = start_row
-    while sheet.cell(row=row, column=submenu_menu_id).value:  # цикл для удаления подменю
-        menu_id = sheet.cell(row=row, column=submenu_menu_id).value
-        submenu_id = sheet.cell(row=row, column=submenu_submenu_id).value
-        async with semaphore:
-            await delete_submenu(menu_id, submenu_id)
-        sheet.cell(row=row, column=submenu_menu_id).value = None
-        sheet.cell(row=row, column=submenu_submenu_id).value = None
-        row += 1
-    row = start_row
-    while sheet.cell(row=row, column=dish_menu_id).value:  # цикл для удаления блюд
-        menu_id = sheet.cell(row=row, column=dish_menu_id).value
-        submenu_id = sheet.cell(row=row, column=dish_submenu_id).value
-        dish_id = sheet.cell(row=row, column=dish_dish_id).value
-        async with semaphore:
-            await delete_dish(menu_id, submenu_id, dish_id)
-        sheet.cell(row=row, column=dish_menu_id).value = None
-        sheet.cell(row=row, column=dish_submenu_id).value = None
-        sheet.cell(row=row, column=dish_dish_id).value = None
-        row += 1
+    submenu_ids_not_in_excel = submenu_ids - cur_submenu_ids
+    for submenu_id in submenu_ids_not_in_excel:
+        menu_id = submenus[submenu_id]
+        await delete_submenu(menu_id, submenu_id)
+
+    menu_ids_not_in_excel = menu_ids - cur_menu_ids
+    for menu_id in menu_ids_not_in_excel:
+        await delete_menu(menu_id)
+
+    dish_ids, dishes = cur_dish_ids, cur_dishes
+    submenu_ids, submenus = cur_submenu_ids, cur_submenus
+    menu_ids = cur_menu_ids
+
     wb.save(filepath)
     wb.close()
 
@@ -188,8 +183,7 @@ celery_app.conf.update(
 
 async def main_async() -> None:
     excel_path = 'admin/Menu.xlsx'
-    await create_and_update_from_excel(excel_path)
-    await delete_from_excel(excel_path, delete_row)
+    await change_from_excel(excel_path)
 
 
 @celery_app.task
