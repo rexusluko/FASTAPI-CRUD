@@ -51,7 +51,7 @@ services:
       dockerfile: Dockerfile-celery
     container_name: ylab_celery_worker
     volumes:
-      - your_path/admin:/app/admin
+      - C:\Users\alekr\PycharmProjects\Restaurant/admin:/app/admin
     environment:
       - BROKER_URL=pyamqp://guest:guest@rabbitmq:5672//
     depends_on:

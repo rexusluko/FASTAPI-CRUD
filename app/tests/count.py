@@ -1,13 +1,12 @@
 import pytest
 from httpx import AsyncClient
 
-from ..main import app
-from .conftest import URL
+from app.tests.conftest import URL
 
 
 @pytest.mark.asyncio
-async def test_count():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_count(async_client: AsyncClient):
+    async for client in async_client:
         create_menu_data = {'title': 'My menu 1', 'description': 'My menu description 1'}
         create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
         menu_id = create_menu_response.json()['id']

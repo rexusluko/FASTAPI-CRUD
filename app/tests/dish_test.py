@@ -1,13 +1,12 @@
 import pytest
 from httpx import AsyncClient
 
-from ..main import app
-from .conftest import URL
+from app.tests.conftest import URL
 
 
 @pytest.mark.asyncio
-async def test_create_dish():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_create_dish(async_client: AsyncClient):
+    async for client in async_client:
         create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
         create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
         menu_id = create_menu_response.json()['id']
@@ -25,8 +24,8 @@ async def test_create_dish():
 
 
 @pytest.mark.asyncio
-async def test_get_dishes():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_get_dishes(async_client: AsyncClient):
+    async for client in async_client:
         create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
         create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
         menu_id = create_menu_response.json()['id']
@@ -38,8 +37,8 @@ async def test_get_dishes():
 
 
 @pytest.mark.asyncio
-async def test_get_dish():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_get_dish(async_client: AsyncClient):
+    async for client in async_client:
         create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
         create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
         menu_id = create_menu_response.json()['id']
@@ -59,8 +58,8 @@ async def test_get_dish():
 
 
 @pytest.mark.asyncio
-async def test_get_non_existing_dish():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_get_non_existing_dish(async_client: AsyncClient):
+    async for client in async_client:
         create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
         create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
         menu_id = create_menu_response.json()['id']
@@ -75,8 +74,8 @@ async def test_get_non_existing_dish():
 
 
 @pytest.mark.asyncio
-async def test_update_dish():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_update_dish(async_client: AsyncClient):
+    async for client in async_client:
         create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
         create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
         menu_id = create_menu_response.json()['id']
@@ -98,8 +97,8 @@ async def test_update_dish():
 
 
 @pytest.mark.asyncio
-async def test_update_non_existing_dish():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_update_non_existing_dish(async_client: AsyncClient):
+    async for client in async_client:
         create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
         create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
         menu_id = create_menu_response.json()['id']
@@ -115,8 +114,8 @@ async def test_update_non_existing_dish():
 
 
 @pytest.mark.asyncio
-async def test_delete_submenu():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_delete_submenu(async_client: AsyncClient):
+    async for client in async_client:
         create_menu_data = {'title': 'My menu 11', 'description': 'My menu description 11'}
         create_menu_response = await client.post('/api/v1/menus', json=create_menu_data)
         menu_id = create_menu_response.json()['id']

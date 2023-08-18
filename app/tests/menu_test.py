@@ -1,13 +1,12 @@
 import pytest
 from httpx import AsyncClient
 
-from ..main import app
-from .conftest import URL
+from app.tests.conftest import URL
 
 
 @pytest.mark.asyncio
-async def test_create_menu():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_create_menu(async_client: AsyncClient):
+    async for client in async_client:
         data = {'title': 'My menu 1', 'description': 'My menu description 1'}
         response = await client.post(f'{URL}/api/v1/menus', json=data)
 
@@ -20,15 +19,15 @@ async def test_create_menu():
 
 
 @pytest.mark.asyncio
-async def test_get_menus():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_get_menus(async_client: AsyncClient):
+    async for client in async_client:
         response = await client.get(f'{URL}/api/v1/menus')
         assert response.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_get_menu():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_get_menu(async_client: AsyncClient):
+    async for client in async_client:
         create_data = {'title': 'My menu 2', 'description': 'My menu description 2'}
         create_response = await client.post('/api/v1/menus', json=create_data)
         menu_id = create_response.json()['id']
@@ -42,8 +41,8 @@ async def test_get_menu():
 
 
 @pytest.mark.asyncio
-async def test_get_non_existing_menu():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_get_non_existing_menu(async_client: AsyncClient):
+    async for client in async_client:
         response = await client.get(f'{URL}/api/v1/menus/None')
 
         assert response.status_code == 404
@@ -51,8 +50,8 @@ async def test_get_non_existing_menu():
 
 
 @pytest.mark.asyncio
-async def test_update_menu():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_update_menu(async_client: AsyncClient):
+    async for client in async_client:
         create_data = {'title': 'My menu 3', 'description': 'My menu description 3'}
         create_response = await client.post('/api/v1/menus', json=create_data)
         menu_id = create_response.json()['id']
@@ -68,8 +67,8 @@ async def test_update_menu():
 
 
 @pytest.mark.asyncio
-async def test_update_non_existing_menu():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_update_non_existing_menu(async_client: AsyncClient):
+    async for client in async_client:
         data = {'title': 'Changed menu 1', 'description': 'Changed description 1'}
         response = await client.patch(f'{URL}/api/v1/menus/None', json=data)
         assert response.status_code == 404
@@ -77,8 +76,8 @@ async def test_update_non_existing_menu():
 
 
 @pytest.mark.asyncio
-async def test_delete_menu():
-    async with AsyncClient(app=app, base_url=URL) as client:
+async def test_delete_menu(async_client: AsyncClient):
+    async for client in async_client:
         create_data = {'title': 'My menu 4', 'description': 'My menu description 4'}
         create_response = await client.post('/api/v1/menus', json=create_data)
         menu_id = create_response.json()['id']
